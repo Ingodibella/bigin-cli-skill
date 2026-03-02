@@ -58,6 +58,7 @@ BIGIN_WRITE="${BIGIN_WRITE:-0}"
 BIGIN_CONFIRM="${BIGIN_CONFIRM:-0}"
 MAX_RETRIES=3
 RETRY_DELAY=2
+CONFIG_LOADED=0
 
 # ── Structured Output ─────────────────────────────────────────────
 
@@ -93,6 +94,8 @@ validate_json() {
 # ── Token Management ──────────────────────────────────────────────
 
 load_config() {
+  [[ "$CONFIG_LOADED" == "1" ]] && return 0
+
   if [[ ! -f "$CREDS_FILE" ]]; then
     _error "CONFIG_MISSING" "Credentials not found: $CREDS_FILE. See README for setup."
   fi
@@ -104,6 +107,14 @@ load_config() {
   TOKEN_ENDPOINT=$(jq -r '.token_endpoint // "https://accounts.zoho.eu/oauth/v2/token"' "$CREDS_FILE")
   API_BASE=$(jq -r '.api_base // "https://www.zohoapis.eu/bigin/v2"' "$CREDS_FILE")
   EXPIRES_AT=$(jq -r '.expires_at // "0"' "$CREDS_FILE")
+
+  if [[ -z "$CLIENT_ID" || "$CLIENT_ID" == "null" || \
+        -z "$CLIENT_SECRET" || "$CLIENT_SECRET" == "null" || \
+        -z "$REFRESH_TOKEN" || "$REFRESH_TOKEN" == "null" ]]; then
+    _error "CONFIG_INVALID" "Credentials file is missing required non-empty fields (client_id, client_secret, refresh_token)."
+  fi
+
+  CONFIG_LOADED=1
 }
 
 save_token() {
@@ -140,8 +151,9 @@ refresh_token() {
 }
 
 ensure_token() {
+  load_config
   local now; now=$(date +%s)
-  if [[ "$EXPIRES_AT" == "0" ]] || [[ "$now" -ge "$EXPIRES_AT" ]]; then
+  if [[ -z "$ACCESS_TOKEN" || "$ACCESS_TOKEN" == "null" || "$EXPIRES_AT" == "0" || "$now" -ge "$EXPIRES_AT" ]]; then
     refresh_token
   fi
 }
@@ -614,7 +626,9 @@ bigin_map["fields"]["Products"] = extract_fields(prodf)
 output = json.dumps(bigin_map, indent=2, ensure_ascii=False)
 print(output)
 
-os.makedirs(os.path.dirname(map_file), exist_ok=True)
+map_dir = os.path.dirname(map_file)
+if map_dir:
+    os.makedirs(map_dir, exist_ok=True)
 with open(map_file, "w") as f:
     f.write(output)
 PYEOF
@@ -638,8 +652,6 @@ cmd_raw() {
 }
 
 # ── Main ──────────────────────────────────────────────────────────
-
-load_config
 
 CMD="${1:-help}"
 shift 2>/dev/null || true

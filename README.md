@@ -87,7 +87,7 @@ Create `~/.bigin-oauth.json`:
 > | IN | `https://accounts.zoho.in/oauth/v2/token` | `https://www.zohoapis.in/bigin/v2` |
 > | AU | `https://accounts.zoho.com.au/oauth/v2/token` | `https://www.zohoapis.com.au/bigin/v2` |
 
-The CLI will auto-refresh the `access_token` on first use.
+The CLI will auto-refresh the `access_token` on first use. If `access_token` is empty, refresh is forced automatically.
 
 ### Step 5: Generate Your Map
 
@@ -208,6 +208,18 @@ To use as a skill in an agent framework:
 1. Point the agent to `skills/bigin/SKILL.md`
 2. Let the agent call `bash scripts/bigin.sh <command>` via shell tool
 3. The guardrails prevent accidental mutations — the agent must explicitly set `BIGIN_WRITE=1`
+
+## Quick Health Check Before Open Source Release
+
+Use this minimal checklist:
+
+```bash
+# CLI usage should work even without creds
+BIGIN_CREDS_FILE=/nonexistent bash scripts/bigin.sh help
+
+# smoke tests (offline)
+bash tests/test.sh
+```
 
 ## Tests
 
