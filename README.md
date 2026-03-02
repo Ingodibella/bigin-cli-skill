@@ -1,56 +1,113 @@
-# bigin-cli
+<p align="center">
+  <h1 align="center">bigin-cli</h1>
+  <p align="center">
+    A Bash CLI for the <a href="https://www.bigin.com/">Zoho Bigin</a> CRM API.<br>
+    Built for AI agents and automation workflows.
+  </p>
+  <p align="center">
+    <img src="https://img.shields.io/badge/bash-4.0%2B-blue?logo=gnubash&logoColor=white" alt="Bash 4.0+">
+    <img src="https://img.shields.io/badge/Zoho_Bigin-v2_API-red?logo=zoho&logoColor=white" alt="Bigin v2">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
+    <img src="https://img.shields.io/badge/AI_agent-ready-blueviolet" alt="AI Agent Ready">
+  </p>
+</p>
 
-A Bash CLI for the [Zoho Bigin](https://www.bigin.com/) CRM REST API. Built for AI agents and automation workflows.
+---
 
-## Features
+## Why this exists
 
-- Full CRUD for all Bigin modules (Contacts, Accounts, Pipelines/Deals, Products, Tasks, Events)
-- Deal stage management with fuzzy matching and validation
-- Smart search (word search + criteria search)
-- Auto-generated metadata cache (`bigin-map.json`) for pipelines, stages, and fields
-- OAuth 2.0 with automatic token refresh
-- Retry logic with exponential backoff (429, 5xx)
-- Safety guardrails: read-only by default, write/delete require explicit flags
-- Structured JSON error output
-- Sensible field defaults per module
+Zoho's official MCP server for Bigin is unreliable. COQL doesn't exist in Bigin v2. The API has quirks that trip up both humans and AI agents (mandatory `fields` parameter, `Pipelines` instead of `Deals`, `Sub_Pipeline` not criteria-searchable).
 
-## Prerequisites
+This CLI wraps all of that into a single Bash script with guardrails, retry logic, and auto-generated metadata. Point your AI agent at `skills/bigin/SKILL.md` and let it work.
 
-- `bash` (4.0+)
-- `curl`
-- `jq`
-- `python3` (for stage validation and map generation)
-- A [Zoho Bigin](https://www.bigin.com/) account
-
-## Installation
+## Quick start
 
 ```bash
-git clone https://github.com/YOUR_USER/bigin-cli.git
-cd bigin-cli
+git clone https://github.com/Ingodibella/bigin-cli-skill.git
+cd bigin-cli-skill
 chmod +x scripts/bigin.sh
 ```
 
-## OAuth Setup
+Set up OAuth ([details below](#oauth-setup)), then:
 
-Bigin uses OAuth 2.0. You need a **refresh token** to get started.
+```bash
+bash scripts/bigin.sh map              # generate your org's metadata
+bash scripts/bigin.sh deals "Acme"     # search deals
+bash scripts/bigin.sh contacts "Smith" # search contacts
+```
 
-### Step 1: Register a Self Client
+## For AI agents
+
+> **TL;DR:** Point your agent to [`skills/bigin/SKILL.md`](skills/bigin/SKILL.md), give it shell access, done.
+
+```
+skills/bigin/SKILL.md    →  Agent instructions (triggers, commands, anti-patterns)
+scripts/bigin.sh         →  The CLI (all API calls go through here)
+bigin-map.json           →  Auto-generated org metadata (stages, pipelines, fields)
+```
+
+The agent calls `bash scripts/bigin.sh <command>`. Guardrails prevent accidental writes: the agent must explicitly set `BIGIN_WRITE=1` for mutations and `BIGIN_CONFIRM=1` for deletions.
+
+All errors return structured JSON to stderr:
+
+```json
+{"success": false, "error_code": "WRITE_BLOCKED", "message": "Write operations require BIGIN_WRITE=1", "retryable": false}
+```
+
+No Zoho error interpretation needed.
+
+---
+
+## Features
+
+| | |
+|---|---|
+| **CRUD** | Full create/read/update/delete for Contacts, Accounts, Pipelines (Deals), Products, Tasks, Events |
+| **Deal management** | Stage moves with fuzzy matching and validation against `bigin-map.json` |
+| **Search** | Word search + criteria search (auto-handles Bigin's `Sub_Pipeline` limitation) |
+| **Metadata cache** | Auto-generated `bigin-map.json` with pipelines, stages, sub-pipelines, fields |
+| **OAuth** | Auto token refresh with 60s safety margin, atomic credential writes |
+| **Retry** | Exponential backoff on 429/5xx (3 attempts) |
+| **Guardrails** | Read-only default. `BIGIN_WRITE=1` for writes. `BIGIN_CONFIRM=1` for deletes |
+| **Error output** | Structured JSON on stderr, parseable by agents |
+| **Field defaults** | Sensible defaults per module (Bigin v2 requires explicit `fields`) |
+
+## Prerequisites
+
+- `bash` 4.0+
+- `curl`
+- `jq`
+- `python3` (for stage validation + map generation)
+- A [Zoho Bigin](https://www.bigin.com/) account
+
+---
+
+## OAuth setup
+
+Bigin uses OAuth 2.0. You need a refresh token to get started.
+
+<details>
+<summary><strong>Step 1: Register a Self Client</strong></summary>
 
 1. Go to [Zoho API Console](https://api-console.zoho.eu/) (use `.com` / `.in` / `.com.au` for other regions)
 2. Click **Add Client** > **Self Client**
 3. Note your **Client ID** and **Client Secret**
+</details>
 
-### Step 2: Generate a Grant Token
+<details>
+<summary><strong>Step 2: Generate a Grant Token</strong></summary>
 
 1. In the Self Client, click **Generate Code**
 2. Enter the required scopes:
    ```
    ZohoBigin.modules.ALL,ZohoBigin.settings.ALL,ZohoBigin.org.READ
    ```
-3. Set a description, choose your portal, and click **Create**
+3. Set a description, choose your portal, click **Create**
 4. Copy the generated code (valid for ~3 minutes)
+</details>
 
-### Step 3: Exchange for Refresh Token
+<details>
+<summary><strong>Step 3: Exchange for Refresh Token</strong></summary>
 
 ```bash
 curl -X POST "https://accounts.zoho.eu/oauth/v2/token" \
@@ -60,9 +117,11 @@ curl -X POST "https://accounts.zoho.eu/oauth/v2/token" \
   -d "code=YOUR_GRANT_TOKEN"
 ```
 
-The response contains your `refresh_token` — save it, it doesn't expire.
+The response contains your `refresh_token`. Save it, it doesn't expire.
+</details>
 
-### Step 4: Create Credentials File
+<details>
+<summary><strong>Step 4: Create credentials file</strong></summary>
 
 Create `~/.bigin-oauth.json`:
 
@@ -78,157 +137,133 @@ Create `~/.bigin-oauth.json`:
 }
 ```
 
-> **Region endpoints:**
->
-> | Region | Token Endpoint | API Base |
-> |--------|---------------|----------|
-> | EU | `https://accounts.zoho.eu/oauth/v2/token` | `https://www.zohoapis.eu/bigin/v2` |
-> | US | `https://accounts.zoho.com/oauth/v2/token` | `https://www.zohoapis.com/bigin/v2` |
-> | IN | `https://accounts.zoho.in/oauth/v2/token` | `https://www.zohoapis.in/bigin/v2` |
-> | AU | `https://accounts.zoho.com.au/oauth/v2/token` | `https://www.zohoapis.com.au/bigin/v2` |
+The CLI auto-refreshes `access_token` on first use.
 
-The CLI will auto-refresh the `access_token` on first use. If `access_token` is empty, refresh is forced automatically.
+**Region endpoints:**
 
-### Step 5: Generate Your Map
+| Region | Token endpoint | API base |
+|--------|---------------|----------|
+| EU | `accounts.zoho.eu` | `www.zohoapis.eu` |
+| US | `accounts.zoho.com` | `www.zohoapis.com` |
+| IN | `accounts.zoho.in` | `www.zohoapis.in` |
+| AU | `accounts.zoho.com.au` | `www.zohoapis.com.au` |
+</details>
+
+<details>
+<summary><strong>Step 5: Generate your map</strong></summary>
 
 ```bash
 bash scripts/bigin.sh map
 ```
 
-This creates `bigin-map.json` with your org's pipelines, stages, sub-pipelines, and field definitions.
+Creates `bigin-map.json` with your org's pipelines, stages, sub-pipelines, and field definitions. Re-run whenever your Bigin setup changes.
+</details>
+
+---
 
 ## Usage
 
-### Read Operations (no flags needed)
+### Read (no flags needed)
 
 ```bash
-# Search deals by keyword
-bash scripts/bigin.sh deals "Acme Corp"
+# Deals
+bash scripts/bigin.sh deals "Acme Corp"           # keyword search
+bash scripts/bigin.sh deals --stage "Qualified"    # by stage
+bash scripts/bigin.sh deal <deal_id>               # single deal
 
-# Search deals by stage
-bash scripts/bigin.sh deals --stage "Qualified"
-
-# Get a single deal
-bash scripts/bigin.sh deal <deal_id>
-
-# Search contacts
+# Contacts & Accounts
 bash scripts/bigin.sh contacts "Smith"
-
-# Search accounts (companies)
 bash scripts/bigin.sh accounts "Google"
 
-# List notes for a record
+# Notes, Products, Metadata
 bash scripts/bigin.sh notes Pipelines <deal_id>
-
-# List all products
 bash scripts/bigin.sh products
-
-# View your org's modules, fields, or metadata
 bash scripts/bigin.sh modules
 bash scripts/bigin.sh fields Pipelines
-bash scripts/bigin.sh org
 ```
 
-### Write Operations (require `BIGIN_WRITE=1`)
+### Write (requires `BIGIN_WRITE=1`)
 
 ```bash
-# Add a note
-BIGIN_WRITE=1 bash scripts/bigin.sh note Pipelines <deal_id> "Call Summary" "Discussed pricing."
-
-# Move deal to a new stage
+BIGIN_WRITE=1 bash scripts/bigin.sh note Pipelines <id> "Call" "Discussed pricing."
 BIGIN_WRITE=1 bash scripts/bigin.sh move <deal_id> "Won"
-
-# Update record fields
-BIGIN_WRITE=1 bash scripts/bigin.sh update Pipelines <deal_id> '{"Amount": 15000}'
-
-# Create a new contact
-BIGIN_WRITE=1 bash scripts/bigin.sh create Contacts '{"First_Name":"Jane","Last_Name":"Doe","Email":"jane@example.com"}'
+BIGIN_WRITE=1 bash scripts/bigin.sh update Pipelines <id> '{"Amount": 15000}'
+BIGIN_WRITE=1 bash scripts/bigin.sh create Contacts '{"First_Name":"Jane","Last_Name":"Doe"}'
 ```
 
-### Delete Operations (require `BIGIN_WRITE=1 BIGIN_CONFIRM=1`)
+### Delete (requires both flags)
 
 ```bash
 BIGIN_WRITE=1 BIGIN_CONFIRM=1 bash scripts/bigin.sh delete Contacts <id>
 ```
 
-### Raw API Access
+### Raw API
 
 ```bash
-# Read (no flags)
 bash scripts/bigin.sh raw GET "/Pipelines?fields=Deal_Name,Stage&per_page=10"
-
-# Write (requires BIGIN_WRITE=1)
 BIGIN_WRITE=1 bash scripts/bigin.sh raw PUT "/Pipelines/<id>" '{"data":[{"Stage":"Won"}]}'
 ```
+
+---
 
 ## Configuration
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+|---|---|---|
 | `BIGIN_CREDS_FILE` | `~/.bigin-oauth.json` | Path to OAuth credentials |
 | `BIGIN_MAP_FILE` | `<script_dir>/../bigin-map.json` | Path to metadata cache |
 | `BIGIN_WRITE` | `0` | Set to `1` to enable write operations |
 | `BIGIN_CONFIRM` | `0` | Set to `1` to enable destructive operations |
 
-## Bigin Concepts
+---
 
-| Bigin Term | Meaning |
-|-----------|---------|
-| Pipelines | Deals — the main module API name |
-| Accounts | Companies |
-| Sub_Pipeline | The pipeline category (e.g., "Sales", "Support") |
-| Stage | The deal stage within a pipeline |
-| Layout | Groups of stages and sub-pipelines |
+## Bigin quirks you should know
 
-> **Important:** Bigin is NOT full Zoho CRM. Some CRM features (COQL, certain scopes) are not available.
+Bigin v2 is not full Zoho CRM. These are the gotchas this CLI handles for you:
 
-## Date Formats
+| Quirk | What happens | How bigin-cli handles it |
+|---|---|---|
+| `fields` is mandatory | GET without `fields` returns `REQUIRED_PARAM_MISSING` | Sensible defaults per module |
+| Deals = `Pipelines` | API module name differs from UI | Documented in SKILL.md |
+| `Sub_Pipeline` not searchable | Criteria search returns `INVALID_QUERY` | Auto-falls back to word search |
+| No COQL | Scope doesn't exist in Bigin v2 | Word search + criteria search instead |
+| Stage names vary by layout | Same name can exist in multiple layouts | Validated against `bigin-map.json` with layout disambiguation |
 
-Bigin expects dates as `YYYY-MM-DD` (e.g., `2026-03-15`). DateTime fields use ISO 8601.
-Do NOT use locale formats like `DD.MM.YYYY` or `March 15, 2026`.
+## Date formats
 
-## Error Handling
+Bigin expects dates as `YYYY-MM-DD` (e.g., `2026-03-15`). DateTime fields use ISO 8601. Don't use locale formats like `DD.MM.YYYY` or `March 15, 2026`.
 
-- **429/5xx**: Auto-retry with exponential backoff (3 attempts)
-- **Token expired**: Auto-refresh and retry
-- **Invalid stage**: Validated against `bigin-map.json` with fuzzy matching
-- **Invalid JSON**: Validated before API call
+## Error handling
 
 All errors output structured JSON to stderr:
 
 ```json
-{"success": false, "error_code": "WRITE_BLOCKED", "message": "...", "retryable": false}
+{"success": false, "error_code": "INVALID_STAGE", "message": "Stage not found in any layout", "retryable": false}
 ```
 
-## AI Agent Integration
+| Error code | Meaning | Retryable |
+|---|---|---|
+| `WRITE_BLOCKED` | Missing `BIGIN_WRITE=1` | No |
+| `CONFIRM_REQUIRED` | Missing `BIGIN_CONFIRM=1` | No |
+| `INVALID_JSON` | Malformed JSON input | No |
+| `INVALID_STAGE` | Stage not in `bigin-map.json` | No |
+| `AMBIGUOUS_STAGE` | Stage exists in multiple layouts | No |
+| `TOKEN_REFRESH_FAILED` | OAuth refresh failed | Yes |
+| `CONFIG_MISSING` | Credentials file not found | No |
+| `CONFIG_INVALID` | Missing required fields in credentials | No |
 
-This CLI is designed for use by AI agents (Claude, GPT, etc.). The `skills/bigin/SKILL.md` file provides agent-friendly documentation with trigger words, anti-patterns, and module mappings.
+HTTP 429/5xx errors are auto-retried with exponential backoff (3 attempts).
 
-To use as a skill in an agent framework:
-1. Point the agent to `skills/bigin/SKILL.md`
-2. Let the agent call `bash scripts/bigin.sh <command>` via shell tool
-3. The guardrails prevent accidental mutations — the agent must explicitly set `BIGIN_WRITE=1`
-
-## Quick Health Check Before Open Source Release
-
-Use this minimal checklist:
-
-```bash
-# CLI usage should work even without creds
-BIGIN_CREDS_FILE=/nonexistent bash scripts/bigin.sh help
-
-# smoke tests (offline)
-bash tests/test.sh
-```
+---
 
 ## Tests
 
-Run the smoke tests (no API calls required):
-
 ```bash
 bash tests/test.sh
 ```
 
+15 smoke tests, no API calls required. Tests guardrails, JSON validation, error structure, and config handling.
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT
