@@ -1,0 +1,14 @@
+{
+  "name": "bigin",
+  "displayName": "Zoho Bigin CRM",
+  "description": "Bash CLI for Zoho Bigin CRM REST API. Built for AI agents with guardrails, OAuth auto-refresh, and structured errors.",
+  "version": "2.0.0",
+  "author": "Ingodibella",
+  "license": "MIT",
+  "repository": "https://github.com/Ingodibella/bigin-cli-skill",
+  "tags": ["zoho", "bigin", "crm", "cli", "ai-agent", "bash", "automation"],
+  "skillPath": "skills/bigin/SKILL.md",
+  "requirements": {
+    "binaries": ["bash", "curl", "jq", "python3"]
+  }
+}
