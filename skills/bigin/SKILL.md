@@ -5,8 +5,8 @@ description: |
   Use when user asks about CRM, deals, pipeline status, or needs to update Bigin records.
   Triggers on: Bigin, CRM, Deal, Pipeline, Contact, Account, Note.
 metadata:
-  author: heinz
-  version: "2.0"
+  author: Ingodibella
+  version: "2.0.0"
 ---
 
 # Bigin CRM Skill
