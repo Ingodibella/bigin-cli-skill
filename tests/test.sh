@@ -40,6 +40,14 @@ else
   fail "help should show usage"
 fi
 
+# help should work without credentials
+output=$(BIGIN_CREDS_FILE=/nonexistent/path.json bash "$BIGIN" help 2>&1) || true
+if echo "$output" | grep -q "Usage:"; then
+  ok "help works without credentials"
+else
+  fail "help should not require credentials"
+fi
+
 # ── Test: Unknown command ─────────────────────────────────────────
 echo ""
 echo "--- Unknown command ---"
@@ -128,6 +136,42 @@ if echo "$output" | grep -q "CONFIG_MISSING"; then
   ok "missing credentials detected"
 else
   fail "missing credentials should be detected"
+fi
+
+cat > "$TMPDIR/invalid-creds.json" << 'EOF'
+{
+  "client_id": "test",
+  "client_secret": "test",
+  "access_token": "test",
+  "expires_at": 9999999999,
+  "token_endpoint": "https://accounts.zoho.eu/oauth/v2/token",
+  "api_base": "https://www.zohoapis.eu/bigin/v2"
+}
+EOF
+output=$(BIGIN_CREDS_FILE="$TMPDIR/invalid-creds.json" bash "$BIGIN" modules 2>&1) || true
+if echo "$output" | grep -q "CONFIG_INVALID"; then
+  ok "invalid credentials detected"
+else
+  fail "invalid credentials should be detected"
+fi
+
+# empty required fields should be invalid too
+cat > "$TMPDIR/empty-creds.json" << 'EOF'
+{
+  "client_id": "",
+  "client_secret": "",
+  "refresh_token": "",
+  "access_token": "",
+  "expires_at": 9999999999,
+  "token_endpoint": "https://accounts.zoho.eu/oauth/v2/token",
+  "api_base": "https://www.zohoapis.eu/bigin/v2"
+}
+EOF
+output=$(BIGIN_CREDS_FILE="$TMPDIR/empty-creds.json" bash "$BIGIN" modules 2>&1) || true
+if echo "$output" | grep -q "CONFIG_INVALID"; then
+  ok "empty required credentials detected"
+else
+  fail "empty required credentials should be detected"
 fi
 
 # ── Test: Special characters in error messages ────────────────────
