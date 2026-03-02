@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-01-01T00:00:00.000000",
+  "org": "Your Organization Name",
+  "api_base": "https://www.zohoapis.eu/bigin/v2",
+  "modules": [
+    {"api_name": "Contacts", "display": "Contacts", "plural": "Contacts"},
+    {"api_name": "Accounts", "display": "Accounts", "plural": "Companies"},
+    {"api_name": "Pipelines", "display": "Pipelines", "plural": "Pipelines"},
+    {"api_name": "Products", "display": "Products", "plural": "Products"},
+    {"api_name": "Tasks", "display": "Tasks", "plural": "Tasks"},
+    {"api_name": "Events", "display": "Events", "plural": "Events"},
+    {"api_name": "Calls", "display": "Calls", "plural": "Calls"},
+    {"api_name": "Notes", "display": "Notes", "plural": "Notes"}
+  ],
+  "layouts": [
+    {
+      "name": "YourLayout",
+      "id": "000000000000000000",
+      "stages": [
+        {"name": "New", "id": "000000000000000001"},
+        {"name": "Qualified", "id": "000000000000000002"},
+        {"name": "Proposal Sent", "id": "000000000000000003"},
+        {"name": "Won", "id": "000000000000000004"},
+        {"name": "Lost", "id": "000000000000000005"}
+      ],
+      "sub_pipelines": [
+        {"name": "Sales", "id": "000000000000000010"},
+        {"name": "Support", "id": "000000000000000011"}
+      ]
+    }
+  ],
+  "stages": {
+    "000000000000000001": {"name": "New", "layouts": ["YourLayout"]},
+    "000000000000000002": {"name": "Qualified", "layouts": ["YourLayout"]},
+    "000000000000000003": {"name": "Proposal Sent", "layouts": ["YourLayout"]},
+    "000000000000000004": {"name": "Won", "layouts": ["YourLayout"]},
+    "000000000000000005": {"name": "Lost", "layouts": ["YourLayout"]}
+  },
+  "sub_pipelines": {
+    "000000000000000010": {"name": "Sales", "layouts": ["YourLayout"]},
+    "000000000000000011": {"name": "Support", "layouts": ["YourLayout"]}
+  },
+  "fields": {
+    "Pipelines": [
+      {"api_name": "Deal_Name", "type": "text", "label": "Potential Name", "read_only": false},
+      {"api_name": "Stage", "type": "picklist", "label": "Stage", "read_only": false, "values": ["New", "Qualified", "Proposal Sent", "Won", "Lost"]},
+      {"api_name": "Amount", "type": "currency", "label": "Amount", "read_only": false},
+      {"api_name": "Closing_Date", "type": "date", "label": "Closing Date", "read_only": false},
+      {"api_name": "Contact_Name", "type": "lookup", "label": "Contact Name", "read_only": false},
+      {"api_name": "Account_Name", "type": "lookup", "label": "Account Name", "read_only": false},
+      {"api_name": "Sub_Pipeline", "type": "picklist", "label": "Sub_Pipeline", "read_only": false, "values": ["Sales", "Support"]}
+    ],
+    "Contacts": [
+      {"api_name": "First_Name", "type": "text", "label": "First Name", "read_only": false},
+      {"api_name": "Last_Name", "type": "text", "label": "Last Name", "read_only": false},
+      {"api_name": "Email", "type": "email", "label": "Email", "read_only": false},
+      {"api_name": "Phone", "type": "phone", "label": "Phone", "read_only": false},
+      {"api_name": "Account_Name", "type": "lookup", "label": "Account Name", "read_only": false}
+    ],
+    "Accounts": [
+      {"api_name": "Account_Name", "type": "text", "label": "Account Name", "read_only": false},
+      {"api_name": "Website", "type": "website", "label": "Website", "read_only": false},
+      {"api_name": "Phone", "type": "phone", "label": "Phone", "read_only": false}
+    ],
+    "Products": [
+      {"api_name": "Product_Name", "type": "text", "label": "Product Name", "read_only": false},
+      {"api_name": "Unit_Price", "type": "currency", "label": "Unit Price", "read_only": false},
+      {"api_name": "Product_Code", "type": "text", "label": "Product Code", "read_only": false}
+    ]
+  }
+}

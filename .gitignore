@@ -1,0 +1,17 @@
+# Generated metadata (org-specific, regenerate with: bigin.sh map)
+bigin-map.json
+
+# Credentials
+bigin-oauth.json
+.secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
